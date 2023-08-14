@@ -30,7 +30,6 @@ from threading import Thread
 from urllib.parse import urlparse
 
 from iotronic_lightningrod.common import utils
-from iotronic_lightningrod.config import package_path
 from iotronic_lightningrod.modules import Module
 from iotronic_lightningrod import lightningrod
 import iotronic_lightningrod.wampmessage as WM
@@ -39,12 +38,13 @@ import iotronic_lightningrod.wampmessage as WM
 from oslo_config import cfg
 from oslo_log import log as logging
 LOG = logging.getLogger(__name__)
-
+ROOT_FOLDER = os.environ.get('PROJECT_ROOT', '')
+wstun_path = os.path.join(ROOT_FOLDER, 'node', 'node_modules', '@mdslab', 'wstun', 'bin', 'wstun.js')
 
 wstun_opts = [
     cfg.StrOpt(
         'wstun_bin',
-        default='/usr/bin/wstun',
+        default=wstun_path,
         help=('WSTUN bin for Services Manager')
     ),
 ]
@@ -80,7 +80,7 @@ class ServiceManager(Module.Module):
     def __init__(self, board, session):
         super(ServiceManager, self).__init__("ServiceManager", board)
 
-        print("\nWSTUN bin path: " + str(CONF.services.wstun_bin))
+        LOG.info("WSTUN bin path: " + str(CONF.services.wstun_bin))
 
         self.wstun_ip = urlparse(board.wamp_config["url"])[1].split(':')[0]
         self.wstun_port = "8080"
@@ -117,8 +117,7 @@ class ServiceManager(Module.Module):
                       " wstun zombie process: " + str(exc))
 
         message = "WSTUN zombie processes cleaned."
-        LOG.debug(message)
-        print(message)
+        LOG.info(message)
 
         LOG.info("Cloud service tunnels to initialization:")
 
@@ -133,8 +132,7 @@ class ServiceManager(Module.Module):
             LOG.error(" --> Error loading services.json file: " +
                       "backup is not restorable!")
 
-            path_services_template = \
-                package_path + "/templates/services.example.json"
+            path_services_template = os.path.join(ROOT_FOLDER, 'data', 'templates', 'services.example.json')
 
             if os.path.isfile(path_services_template):
 

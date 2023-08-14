@@ -16,7 +16,8 @@
 __author__ = "Nicola Peditto <n.peditto@gmail.com>"
 
 
-from iotronic_lightningrod.common.pam import pamAuthentication
+#from iotronic_lightningrod.common.pam import pamAuthentication
+from iotronic_lightningrod.common.auth import user_authentication
 from iotronic_lightningrod.common import utils
 from iotronic_lightningrod.lightningrod import board
 from iotronic_lightningrod.lightningrod import iotronic_status
@@ -40,13 +41,14 @@ from flask import abort
 import os
 import subprocess
 import threading
-
+import json
 
 from oslo_config import cfg
 from oslo_log import log as logging
 LOG = logging.getLogger(__name__)
 
 CONF = cfg.CONF
+ROOT_FOLDER = os.environ.get('PROJECT_ROOT', '')
 
 
 class RestManager(Module.Module):
@@ -65,6 +67,7 @@ class RestManager(Module.Module):
         APP_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         TEMPLATE_PATH = os.path.join(APP_PATH, 'modules/web/templates/')
         STATIC_PATH = os.path.join(APP_PATH, 'modules/web/static/')
+        AUTH_FILE = os.path.join(ROOT_FOLDER, 'data', 'auth.json')
 
         app = Flask(
             __name__,
@@ -75,7 +78,7 @@ class RestManager(Module.Module):
 
         app.secret_key = os.urandom(24).hex()  # to use flask session
 
-        UPLOAD_FOLDER = '/tmp'
+        UPLOAD_FOLDER = os.path.join(ROOT_FOLDER, 'data', 'tmp')
         ALLOWED_EXTENSIONS = set(['tar.gz', 'gz'])
         ALLOWED_STTINGS_EXTENSIONS = set(['json'])
         app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -104,7 +107,8 @@ class RestManager(Module.Module):
 
             if request.method == 'POST':
 
-                if pamAuthentication(
+                if user_authentication(
+                        AUTH_FILE,
                         str(request.form['username']),
                         str(request.form['password'])
                 ):
@@ -276,14 +280,26 @@ class RestManager(Module.Module):
                 return redirect(url_for('login', next=request.endpoint))
 
         def lr_config(ragent, code):
-            bashCommand = "lr_configure %s %s " % (code, ragent)
-            process = subprocess.Popen(bashCommand.split(),
-                                       stdout=subprocess.PIPE)
-            output, error = process.communicate()
-
-            return
+            data = {
+                'iotronic' : {
+                    'board' : {
+                        'code' : code
+                    },
+                    'wamp' : {
+                        'registration-agent' : {
+                            'url' : ragent,
+                            'realm' : 's4t'
+                        }
+                    }
+                }
+            }
+            with open(os.path.join(ROOT_FOLDER, 'data', 'iotronic', 'settings.json'), 'w') as f:
+                json.dump(data, f, indent=2)
 
         def change_hostname(hostname):
+            # TODO: not sure how to approach this
+
+            """
             if hostname != "":
                 bashCommand = "hostname %s " % (hostname)
                 process = subprocess.Popen(bashCommand.split(),
@@ -291,15 +307,18 @@ class RestManager(Module.Module):
                 output, error = process.communicate()
             else:
                 print("- No hostname specified!")
-
+            """
             return
 
         def lr_install():
-            bashCommand = "lr_install"
-            process = subprocess.Popen(bashCommand.split(),
-                                       stdout=subprocess.PIPE)
-            output, error = process.communicate()
+            replace_list = ['plugins', 'services', 'settings']
+            templates_folder = os.path.join(ROOT_FOLDER, 'data', 'templates')
+            iotronic_folder = os.path.join(ROOT_FOLDER, 'data', 'iotronic')
 
+            for filename in replace_list:
+                with open(os.path.join(templates_folder, f'{filename}.example.json'), 'r') as s:
+                    with open(os.path.join(iotronic_folder, f'{filename}.json'), 'w') as d:
+                        json.dump(json.load(s), d, indent=2)
             return
 
         def identity_backup():
@@ -442,28 +461,30 @@ class RestManager(Module.Module):
 
                 f_session['status'] = str(board.status)
 
+                # TODO: handle this
+
                 # delete nginx conf.d files
-                os.system("rm /etc/nginx/conf.d/lr_*")
-                print("--> NGINX settings deleted.")
+                # os.system("rm /etc/nginx/conf.d/lr_*")
+                # print("--> NGINX settings deleted.")
 
                 # delete letsencrypt
-                os.system("rm -r /etc/letsencrypt/*")
-                print("--> LetsEncrypt settings deleted.")
+                # os.system("rm -r /etc/letsencrypt/*")
+                # print("--> LetsEncrypt settings deleted.")
 
                 # delete var-iotronic
-                os.system("rm -r /var/lib/iotronic/*")
-                print("--> Iotronic data deleted.")
+                # os.system("rm -r /var/lib/iotronic/*")
+                # print("--> Iotronic data deleted.")
 
                 # delete etc-iotronic
-                os.system("rm -r /etc/iotronic/*")
-                print("--> Iotronic settings deleted.")
+                # upd: lr_install now takes care of removal as well
 
                 # exec lr_install
                 lr_install()
-
+                print("--> Iotronic settings deleted.")
                 # restart LR
                 print("--> LR restarting in 5 seconds...")
                 f_session['status'] = "restarting"
+
                 lr_utils.LR_restart_delayed(5)
 
                 return redirect("/", code=302)
@@ -479,7 +500,7 @@ class RestManager(Module.Module):
 
                 if request.method == 'POST':
 
-                    req_body = request.get_json()
+                    req_body = request.get_json(silent=True)
 
                     LOG.debug(req_body)
 

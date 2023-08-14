@@ -17,6 +17,7 @@ __author__ = "Nicola Peditto <n.peditto@gmail.com>"
 
 from datetime import datetime
 import json
+import os
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -24,7 +25,8 @@ LOG = logging.getLogger(__name__)
 
 CONF = cfg.CONF
 
-SETTINGS = '/etc/iotronic/settings.json'
+ROOT_FOLDER = os.environ.get('PROJECT_ROOT', '')
+SETTINGS = os.path.join(ROOT_FOLDER, 'data', 'iotronic', 'settings.json')
 
 # global FIRST_BOOT
 FIRST_BOOT = False

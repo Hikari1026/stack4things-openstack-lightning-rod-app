@@ -161,7 +161,7 @@ def refresh_stevedore(namespace=None):
     else:
         cache.clear()
 
-
+# Might as well exit, the upper layer will restart LR shortly after anyway
 def LR_restart_delayed(seconds):
 
     try:
@@ -173,8 +173,9 @@ def LR_restart_delayed(seconds):
 
         def delayLRrestarting():
             time.sleep(seconds)
-            python = sys.executable
-            os.execl(python, python, *sys.argv)
+            # python = sys.executable
+            # os.execl(python, python, *sys.argv)
+            os.kill(os.getpid(), signal.SIGKILL)
 
         threading.Thread(target=delayLRrestarting).start()
     except Exception as err:
@@ -184,8 +185,9 @@ def LR_restart_delayed(seconds):
 def LR_restart():
     try:
         LOG.warning("Lightning-rod restarting in few seconds...")
-        python = sys.executable
-        os.execl(python, python, *sys.argv)
+        # python = sys.executable
+        # os.execl(python, python, *sys.argv)
+        os.kill(os.getpid(), signal.SIGKILL)
     except Exception as err:
         LOG.error("Lightning-rod restarting error: " + str(err))
 

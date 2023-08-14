@@ -31,7 +31,8 @@ import signal
 import ssl
 import sys
 import time
-import txaio
+import threading
+# import txaio
 
 from pip._vendor import pkg_resources
 from stevedore import extension
@@ -49,11 +50,12 @@ import iotronic_lightningrod.wampmessage as WM
 LOG = logging.getLogger(__name__)
 
 CONF = cfg.CONF
+ROOT_FOLDER = os.environ.get('PROJECT_ROOT', '')
 
 # LR options
 lr_opts = [
     cfg.StrOpt('lightningrod_home',
-               default='/var/lib/iotronic',
+               default= os.path.join(ROOT_FOLDER, 'data', 'iotronic'),
                help=('Lightning-rod Home Data')
                ),
     cfg.BoolOpt('skip_cert_verify',
@@ -101,7 +103,7 @@ logging.setup(CONF, DOMAIN)
 
 
 # Logging setup
-txaio.start_logging(level=str(CONF.log_level))
+#txaio.start_logging(level=str(CONF.log_level))
 
 
 global SESSION
@@ -115,6 +117,7 @@ wport = None
 
 global board
 board = None
+
 
 from threading import Timer
 global connFailure
@@ -142,7 +145,7 @@ MODULES = {}
 
 class LightningRod(object):
 
-    def __init__(self):
+    def start(self):
 
         """
         LogoLR()
@@ -168,7 +171,7 @@ class LightningRod(object):
 
         # Manage LR exit signals
         signal.signal(signal.SIGINT, self.stop_handler)
-
+        
         LogoLR()
 
         LOG.info('Lightning-rod: ')
@@ -177,7 +180,7 @@ class LightningRod(object):
         LOG.info(' - PID: ' + str(os.getpid()))
         LOG.info(" - Home: " + CONF.lightningrod_home)
 
-        if (CONF.log_file == "None"):
+        if (CONF.log_file == "None" or CONF.log_file == None):
             LOG.info(' - Log file: not specified!')
         else:
             LOG.info(' - Log file: ' + CONF.log_file)
@@ -786,7 +789,7 @@ def wampConnect(wamp_conf):
 
                             LOG.info("WAMP Session Recovered!")
 
-                            LOG.info("\n\nListening...\n\n")
+                            LOG.info("Listening...")
 
                             # WS ALIVE
                             asyncio.run_coroutine_threadsafe(
@@ -1106,7 +1109,7 @@ def modulesLoader(session):
         LOG.warning("Board modules loading error: " + str(err))
 
     LOG.info("Lightning-rod modules loaded.")
-    LOG.info("\n\nListening...")
+    LOG.info("Listening...")
 
 
 def moduleReloadInfo(session):
@@ -1143,7 +1146,7 @@ def moduleReloadInfo(session):
 
 def Bye():
     LOG.info("Bye!")
-    os._exit(1)
+    os.kill(os.getpid(), signal.SIGKILL)
 
 
 def LogoLR():
