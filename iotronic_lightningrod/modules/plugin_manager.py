@@ -341,7 +341,7 @@ class PluginManager(Module.Module):
                 LOG.info(
                     " - main request: " + str(req['main_request_uuid']))
                 try:
-                    threading.Thread(target=Inject).start()
+                    threading.Thread(target=Inject, name='LR-Inject').start()
                     w_msg = WM.WampRunning(msg=rpc_name, req_id=req_id)
 
                 except Exception as err:

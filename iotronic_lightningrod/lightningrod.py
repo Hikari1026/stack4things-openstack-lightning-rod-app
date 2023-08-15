@@ -27,7 +27,7 @@ import asyncio
 import inspect
 import os
 # import pkg_resources
-import signal
+# import signal
 import ssl
 import sys
 import time
@@ -67,6 +67,9 @@ lr_opts = [
                default='info',
                help=('Lightning-rod log level')
                ),
+    cfg.BoolOpt('stop_feature',
+                default=False,
+                help='Global variable to stop the execution')
 ]
 
 CONF.register_opts(lr_opts)
@@ -145,7 +148,7 @@ MODULES = {}
 
 class LightningRod(object):
 
-    def start(self):
+    def start(self, event):
 
         """
         LogoLR()
@@ -168,9 +171,17 @@ class LightningRod(object):
         """
 
         self.w = None
+        self.event = event
+
+        # Reset the feature just in case was set before starting
+        CONF.stop_feature = False
 
         # Manage LR exit signals
-        signal.signal(signal.SIGINT, self.stop_handler)
+        # signal.signal(signal.SIGINT, self.stop_handler)
+
+        global loop
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         
         LogoLR()
 
@@ -230,23 +241,27 @@ class LightningRod(object):
 
         # Start Wamp Manager
         self.w = WampManager(board.wamp_config)
+        # self.w_thread = threading.Thread(target=self.w.start, daemon=True, name="wampManager")
+        # self.w_thread.start()
+        loop.call_soon(self._stop_thread_handler)
+
+        # This function will call loop.run_forever()
         self.w.start()
 
-    def stop_handler(self, signum, frame):
+        # If this point is reached then the loop ended so it's time to close the thread
+        self.stop()
 
-        try:
+    def stop(self):
 
-            zombie_alert = False  # No zombie alert activation
+        LOG.info("LR is shutting down...")
+        Bye()
 
-            LOG.info("LR is shutting down...")
-            if self.w != None:
-                self.w.stop()
-
-            Bye()
-
-        except Exception as e:
-            LOG.error("Error closing LR")
-
+    def _stop_thread_handler(self):
+        # Trampoline function
+        if CONF.stop_feature or self.event.is_set():
+            loop.stop()
+        else:
+            loop.call_later(5, self._stop_thread_handler)
 
 class WampManager(object):
     """WAMP Manager: through this LR manages the connection to Crossbar server.
@@ -259,22 +274,24 @@ class WampManager(object):
         wampConnect(wamp_conf)
 
     def start(self):
+        # In case I want it in a separate thread
+        # self.loop = asyncio.new_event_loop()
+        # asyncio.set_event_loop(self.loop)
         LOG.info(" - starting Lightning-rod WAMP server...")
         try:
             if(board.status != "url_wamp_error"):
-                global loop
-                loop = asyncio.get_event_loop()
                 component.start(loop)
                 loop.run_forever()
 
         except Exception as err:
             LOG.error(" - Error starting asyncio-component: " + str(err))
 
-    def stop(self):
-        LOG.info("Stopping WAMP agent server...")
-        # Canceling pending tasks and stopping the loop
-        asyncio.gather(*asyncio.Task.all_tasks()).cancel()
-        LOG.info("WAMP server stopped!")
+    # This is handled in the upper layer
+    # def stop(self):
+    #     LOG.info("Stopping WAMP agent server...")
+    #     # Canceling pending tasks and stopping the loop
+    #     asyncio.gather(*asyncio.Task.all_tasks()).cancel()
+    #     LOG.info("WAMP server stopped!")
 
 
 def iotronic_status(board_status):
@@ -1146,7 +1163,8 @@ def moduleReloadInfo(session):
 
 def Bye():
     LOG.info("Bye!")
-    os.kill(os.getpid(), signal.SIGKILL)
+    CONF.stop_feature = True
+    # os.kill(os.getpid(), signal.SIGKILL)
 
 
 def LogoLR():

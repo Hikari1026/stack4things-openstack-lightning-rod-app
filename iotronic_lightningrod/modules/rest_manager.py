@@ -57,7 +57,15 @@ class RestManager(Module.Module):
         super(RestManager, self).__init__("RestManager", board)
 
     def finalize(self):
-        threading.Thread(target=self._runRestServer, args=()).start()
+        # Check if rest manager is already running
+        isRestRunning = False
+        thread_name = "rest_server"
+        for t in threading.enumerate():
+            if t.name == thread_name:
+                isRestRunning = True
+        
+        if not isRestRunning:
+            threading.Thread(target=self._runRestServer, args=(), name=thread_name).start()
 
     def restore(self):
         pass
@@ -173,7 +181,7 @@ class RestManager(Module.Module):
                 'iotronic_status': str(iotronic_status(board.status)),
                 'service_list': service_list,
                 'webservice_list': webservice_list,
-                'serial_dev': device_manager.getSerialDevice(),
+                'serial_dev': str('None'),#device_manager.getSerialDevice(),
                 'nic': lr_cty,
                 'lr_version': str(
                     utils.get_version("iotronic-lightningrod")
@@ -240,7 +248,7 @@ class RestManager(Module.Module):
                         'iotronic_status': str(iotronic_status(board.status)),
                         'service_list': str(service_list),
                         'webservice_list': str(webservice_list),
-                        'serial_dev': device_manager.getSerialDevice(),
+                        'serial_dev': str('None'),#device_manager.getSerialDevice(),
                         'nic': lr_cty,
                         'lr_version': str(
                             utils.get_version("iotronic-lightningrod")
@@ -273,7 +281,7 @@ class RestManager(Module.Module):
         def network():
             if 'username' in f_session:
                 info = {
-                    'ifconfig': device_manager.getIfconfig()
+                    'ifconfig': str('None'),#device_manager.getIfconfig()
                 }
                 return render_template('network.html', **info)
             else:
@@ -479,7 +487,7 @@ class RestManager(Module.Module):
                 # upd: lr_install now takes care of removal as well
 
                 # exec lr_install
-                lr_install()
+                # lr_install()
                 print("--> Iotronic settings deleted.")
                 # restart LR
                 print("--> LR restarting in 5 seconds...")

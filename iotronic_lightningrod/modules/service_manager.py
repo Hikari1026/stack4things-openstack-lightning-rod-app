@@ -19,7 +19,7 @@ import json
 import os
 import psutil
 import pyinotify
-import signal
+# import signal
 import socket
 import subprocess
 import time
@@ -216,7 +216,7 @@ class ServiceManager(Module.Module):
 
                                     try:
 
-                                        os.kill(service_pid, signal.SIGINT)
+                                        # os.kill(service_pid, signal.SIGINT)
                                         LOG.debug(
                                             " - [finalize] WSTUN process ["
                                             + str(service_pid) + "] killed"
@@ -279,7 +279,7 @@ class ServiceManager(Module.Module):
                                       + " service tunnel!"
                             LOG.error(" - " + message)
 
-                        signal.signal(signal.SIGCHLD, self._zombie_hunter)
+                        # signal.signal(signal.SIGCHLD, self._zombie_hunter)
 
                     # Reactivate zombies monitoring
                     if not lightningrod.zombie_alert:
@@ -288,7 +288,7 @@ class ServiceManager(Module.Module):
                 else:
                     LOG.info(" --> No service tunnels to establish.")
 
-                    signal.signal(signal.SIGCHLD, self._zombie_hunter)
+                    # signal.signal(signal.SIGCHLD, self._zombie_hunter)
 
             else:
                 sock.close()  # close check socket
@@ -698,7 +698,7 @@ class ServiceManager(Module.Module):
                     )
 
                     try:
-                        os.kill(wstun.pid, signal.SIGKILL)
+                        # os.kill(wstun.pid, signal.SIGKILL)
                         LOG.debug(
                             " - [_wstunMon] WSTUN process " +
                             "[ port(" + str(local_port) + ") | " +
@@ -1120,7 +1120,7 @@ class ServiceManager(Module.Module):
                         # No zombie alert activation
                         lightningrod.zombie_alert = False
 
-                        os.kill(service_pid, signal.SIGKILL)
+                        # os.kill(service_pid, signal.SIGKILL)
                         LOG.info(" - [ServiceDisable] WSTUN process " +
                                  "[" + str(service_pid) + "] killed")
 
@@ -1249,7 +1249,7 @@ class ServiceManager(Module.Module):
 
                     # 1. Kill wstun process (if exists)
                     try:
-                        os.kill(service_pid, signal.SIGKILL)
+                        # os.kill(service_pid, signal.SIGKILL)
                         LOG.info(" - service '" + service_name
                                  + "' with PID " + str(service_pid)
                                  + " was killed.")

@@ -27,7 +27,7 @@ import subprocess
 import sys
 import threading
 import time
-import signal
+# import signal
 
 
 from iotronic_lightningrod.common import utils
@@ -37,7 +37,10 @@ from iotronic_lightningrod.modules import utils as lr_utils
 
 
 from oslo_log import log as logging
+from oslo_config import cfg
+
 LOG = logging.getLogger(__name__)
+CONF = cfg.CONF
 
 global connFailureRecovery
 connFailureRecovery = None
@@ -175,9 +178,9 @@ def LR_restart_delayed(seconds):
             time.sleep(seconds)
             # python = sys.executable
             # os.execl(python, python, *sys.argv)
-            os.kill(os.getpid(), signal.SIGKILL)
+            CONF.stop_feature = True
 
-        threading.Thread(target=delayLRrestarting).start()
+        threading.Thread(target=delayLRrestarting, name="LR-delay_restart").start()
     except Exception as err:
         LOG.error("Lightning-rod restarting error: " + str(err))
 
@@ -187,7 +190,7 @@ def LR_restart():
         LOG.warning("Lightning-rod restarting in few seconds...")
         # python = sys.executable
         # os.execl(python, python, *sys.argv)
-        os.kill(os.getpid(), signal.SIGKILL)
+        CONF.stop_feature = True
     except Exception as err:
         LOG.error("Lightning-rod restarting error: " + str(err))
 
@@ -211,7 +214,7 @@ def destroyWampSocket():
         LOG.warning("WAMP Connection Recovery GDB timer: EXPIRED")
 
         global gdbPid
-        os.kill(gdbPid, signal.SIGKILL)
+        # os.kill(gdbPid, signal.SIGKILL)
         LOG.warning("WAMP Connection Recovery GDB process: KILLED")
 
         LOG.warning("WAMP Connection Recovery GDB process: LR restarting...")

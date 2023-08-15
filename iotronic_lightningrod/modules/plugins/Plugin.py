@@ -29,12 +29,11 @@ class Plugin(threading.Thread):
     def __init__(self, uuid, name, q_result=None, params=None):
 
         threading.Thread.__init__(self)
-        # self.setDaemon(1)
-        self.setName("Plugin " + str(self.name))  # Set thread name
         LOG.debug("Plugin Name: " + self.name)
 
         self.uuid = uuid
-        self.name = name
+        self.name = "LR-Plugin-" + name
+        self.daemon = True
         self.status = "INITED"
         self.setStatus(self.status)
         self._is_running = True

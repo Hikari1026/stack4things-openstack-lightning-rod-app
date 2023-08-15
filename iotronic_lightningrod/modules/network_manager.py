@@ -59,6 +59,7 @@ class NetworkManager(Module.Module):
         LOG.debug("Creation of the VIF iotronic" + str(r_tcp_port))
 
         try:
+            raise NotImplementedError("socat and wstun subprocess")
 
             p1 = subprocess.Popen('socat -d -d TCP-L:' + str(inter_num) +
                                   ',bind=localhost,reuseaddr,forever,'
@@ -103,6 +104,8 @@ class NetworkManager(Module.Module):
 
         try:
             LOG.debug("Configuration of the VIF " + interface)
+
+            raise NotImplementedError("Ip link and address subprocess")
 
             p3 = subprocess.Popen("ip link set dev " + interface + " address "
                                   + str(port['MAC_add']),

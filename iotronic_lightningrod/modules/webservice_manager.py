@@ -311,7 +311,7 @@ class WebServiceManager(Module.Module):
 
         try:
 
-            threading.Thread(target=renewing).start()
+            threading.Thread(target=renewing, name='LR-renew').start()
 
         except Exception as err:
             LOG.error("Error in renewing thread: " + str(err))
