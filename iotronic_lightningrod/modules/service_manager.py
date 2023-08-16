@@ -38,16 +38,6 @@ import iotronic_lightningrod.wampmessage as WM
 from oslo_config import cfg
 from oslo_log import log as logging
 LOG = logging.getLogger(__name__)
-ROOT_FOLDER = os.environ.get('PROJECT_ROOT', '')
-wstun_path = os.path.join(ROOT_FOLDER, 'node', 'node_modules', '@mdslab', 'wstun', 'bin', 'wstun.js')
-
-wstun_opts = [
-    cfg.StrOpt(
-        'wstun_bin',
-        default=wstun_path,
-        help=('WSTUN bin for Services Manager')
-    ),
-]
 
 CONF = cfg.CONF
 
@@ -55,7 +45,6 @@ service_group = cfg.OptGroup(
     name='services', title='Services options'
 )
 CONF.register_group(service_group)
-CONF.register_opts(wstun_opts, group=service_group)
 
 
 s_conf_FILE = CONF.lightningrod_home + "/services.json"
@@ -78,6 +67,18 @@ wstun_port = None
 class ServiceManager(Module.Module):
 
     def __init__(self, board, session):
+        self._data_folder = os.environ.get('DATA_FOLDER', '')
+        wstun_path = os.path.join(self._data_folder, 'node', 'node_modules', '@mdslab', 'wstun', 'bin', 'wstun.js')
+
+        wstun_opts = [
+            cfg.StrOpt(
+                'wstun_bin',
+                default=wstun_path,
+                help=('WSTUN bin for Services Manager')
+            ),
+        ]
+        CONF.register_opts(wstun_opts, group=service_group)
+
         super(ServiceManager, self).__init__("ServiceManager", board)
 
         LOG.info("WSTUN bin path: " + str(CONF.services.wstun_bin))
@@ -105,16 +106,16 @@ class ServiceManager(Module.Module):
     def finalize(self):
 
         # Clean process table and remove zombies
-        for _ in range(get_zombies()):
-            try:
-                os.waitpid(-1, os.WNOHANG)
-                LOG.debug(
-                    " - [finalize] WSTUN zombie " +
-                    "process cleaned."
-                )
-            except Exception as exc:
-                print(" - [finalize] Error cleaning" +
-                      " wstun zombie process: " + str(exc))
+        # for _ in range(get_zombies()):
+        #     try:
+        #         os.waitpid(-1, os.WNOHANG)
+        #         LOG.debug(
+        #             " - [finalize] WSTUN zombie " +
+        #             "process cleaned."
+        #         )
+        #     except Exception as exc:
+        #         print(" - [finalize] Error cleaning" +
+        #               " wstun zombie process: " + str(exc))
 
         message = "WSTUN zombie processes cleaned."
         LOG.info(message)

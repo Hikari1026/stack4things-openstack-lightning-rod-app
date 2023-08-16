@@ -34,7 +34,8 @@ import time
 import threading
 # import txaio
 
-from pip._vendor import pkg_resources
+# from pip._vendor import pkg_resources
+import importlib.metadata
 from stevedore import extension
 
 # IoTronic imports
@@ -50,30 +51,6 @@ import iotronic_lightningrod.wampmessage as WM
 LOG = logging.getLogger(__name__)
 
 CONF = cfg.CONF
-ROOT_FOLDER = os.environ.get('PROJECT_ROOT', '')
-
-# LR options
-lr_opts = [
-    cfg.StrOpt('lightningrod_home',
-               default= os.path.join(ROOT_FOLDER, 'data', 'iotronic'),
-               help=('Lightning-rod Home Data')
-               ),
-    cfg.BoolOpt('skip_cert_verify',
-                default=True,
-                help=('Flag for skipping the verification of the server cert '
-                      '(for the auto-signed ones)')
-                ),
-    cfg.StrOpt('log_level',
-               default='info',
-               help=('Lightning-rod log level')
-               ),
-    cfg.BoolOpt('stop_feature',
-                default=False,
-                help='Global variable to stop the execution')
-]
-
-CONF.register_opts(lr_opts)
-
 
 # Autobahn options
 autobahn_opts = [
@@ -170,6 +147,30 @@ class LightningRod(object):
             txaio.start_logging(level="debug")
         """
 
+        self._data_folder = os.environ.get('DATA_FOLDER', '')
+
+        # LR options
+        lr_opts = [
+            cfg.StrOpt('lightningrod_home',
+                    default= os.path.join(self._data_folder, 'iotronic'),
+                    help=('Lightning-rod Home Data')
+                    ),
+            cfg.BoolOpt('skip_cert_verify',
+                        default=True,
+                        help=('Flag for skipping the verification of the server cert '
+                            '(for the auto-signed ones)')
+                        ),
+            cfg.StrOpt('log_level',
+                    default='info',
+                    help=('Lightning-rod log level')
+                    ),
+            cfg.BoolOpt('stop_feature',
+                        default=False,
+                        help='Global variable to stop the execution')
+        ]
+
+        CONF.register_opts(lr_opts)
+
         self.w = None
         self.event = event
 
@@ -215,9 +216,9 @@ class LightningRod(object):
 
         if(board.status == "first_boot"):
 
-            os.system("pkill -f 'node /usr/bin/wstun'")
-            LOG.debug("OLD tunnels cleaned!")
-            print("OLD tunnels cleaned!")
+            # os.system("pkill -f 'node /usr/bin/wstun'")
+            # LOG.debug("OLD tunnels cleaned!")
+            # print("OLD tunnels cleaned!")
 
             LOG.info("LR FIRST BOOT: waiting for first configuration...")
 
@@ -1002,11 +1003,7 @@ def moduleWampRegister(session, meth_list):
 
 
 def singleModuleLoader(module_name, session=None):
-    ep = []
-
-    for ep in pkg_resources.iter_entry_points(group='s4t.modules'):
-        # LOG.info(" - " + str(ep))
-        pass
+    ep = importlib.metadata.entry_points()["s4t.modules"]
 
     if not ep:
 
@@ -1064,10 +1061,8 @@ def modulesLoader(session):
 
         LOG.info("Available modules: ")
 
-        ep = []
 
-        for ep in pkg_resources.iter_entry_points(group='s4t.modules'):
-            LOG.info(" - " + str(ep))
+        ep = importlib.metadata.entry_points()["s4t.modules"]
 
         if not ep:
 

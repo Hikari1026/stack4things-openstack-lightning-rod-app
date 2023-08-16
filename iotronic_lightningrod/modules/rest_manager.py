@@ -23,7 +23,7 @@ from iotronic_lightningrod.lightningrod import board
 from iotronic_lightningrod.lightningrod import iotronic_status
 from iotronic_lightningrod.modules import device_manager
 from iotronic_lightningrod.modules import Module
-from iotronic_lightningrod.modules import service_manager
+# from iotronic_lightningrod.modules import service_manager
 from iotronic_lightningrod.modules import utils as lr_utils
 
 
@@ -48,13 +48,13 @@ from oslo_log import log as logging
 LOG = logging.getLogger(__name__)
 
 CONF = cfg.CONF
-ROOT_FOLDER = os.environ.get('PROJECT_ROOT', '')
 
 
 class RestManager(Module.Module):
 
     def __init__(self, board, session=None):
         super(RestManager, self).__init__("RestManager", board)
+        self._data_folder = os.environ.get('DATA_FOLDER', '')
 
     def finalize(self):
         # Check if rest manager is already running
@@ -75,7 +75,7 @@ class RestManager(Module.Module):
         APP_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         TEMPLATE_PATH = os.path.join(APP_PATH, 'modules/web/templates/')
         STATIC_PATH = os.path.join(APP_PATH, 'modules/web/static/')
-        AUTH_FILE = os.path.join(ROOT_FOLDER, 'data', 'auth.json')
+        AUTH_FILE = os.path.join(self._data_folder, 'auth.json')
 
         app = Flask(
             __name__,
@@ -86,7 +86,7 @@ class RestManager(Module.Module):
 
         app.secret_key = os.urandom(24).hex()  # to use flask session
 
-        UPLOAD_FOLDER = os.path.join(ROOT_FOLDER, 'data', 'tmp')
+        UPLOAD_FOLDER = os.path.join(self._data_folder, 'tmp')
         ALLOWED_EXTENSIONS = set(['tar.gz', 'gz'])
         ALLOWED_STTINGS_EXTENSIONS = set(['json'])
         app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -139,13 +139,13 @@ class RestManager(Module.Module):
 
         @app.route('/info')
         def info():
-            wstun_status = service_manager.wstun_status()
+            wstun_status = 1 #service_manager.wstun_status()
             if wstun_status == 0:
                 wstun_status = "Online"
             else:
                 wstun_status = "Offline"
 
-            service_list = service_manager.services_list("list")
+            service_list = "" #service_manager.services_list("list")
             if service_list == "":
                 service_list = "no services exposed!"
 
@@ -199,13 +199,13 @@ class RestManager(Module.Module):
 
                     f_session['status'] = str(board.status)
 
-                    wstun_status = service_manager.wstun_status()
+                    wstun_status = 1 #service_manager.wstun_status()
                     if wstun_status == 0:
                         wstun_status = "Online"
                     else:
                         wstun_status = "Offline"
 
-                    service_list = service_manager.services_list("html")
+                    service_list = "" #service_manager.services_list("html")
                     if service_list == "":
                         service_list = "no services exposed!"
 

@@ -25,9 +25,6 @@ LOG = logging.getLogger(__name__)
 
 CONF = cfg.CONF
 
-ROOT_FOLDER = os.environ.get('PROJECT_ROOT', '')
-SETTINGS = os.path.join(ROOT_FOLDER, 'data', 'iotronic', 'settings.json')
-
 # global FIRST_BOOT
 FIRST_BOOT = False
 
@@ -57,6 +54,9 @@ class Board(object):
         self.wamp_config = None
         self.extra = {}
 
+        self._data_folder = os.environ.get('DATA_FOLDER', '')
+        self._settings = os.path.join(self._data_folder, 'iotronic', 'settings.json')
+
         self.loadSettings()
 
     def loadConf(self):
@@ -68,11 +68,11 @@ class Board(object):
 
         try:
 
-            with open(SETTINGS) as settings:
+            with open(self._settings) as settings:
                 lr_settings = json.load(settings)
 
         except Exception as err:
-            LOG.error("Parsing error in " + SETTINGS + ": " + str(err))
+            LOG.error("Parsing error in " + self._settings + ": " + str(err))
             lr_settings = None
 
         return lr_settings
@@ -167,7 +167,7 @@ class Board(object):
     def setConf(self, conf):
         # LOG.info("\nNEW CONFIGURATION:\n" + str(json.dumps(conf, indent=4)))
 
-        with open(SETTINGS, 'w') as f:
+        with open(self._settings, 'w') as f:
             json.dump(conf, f, indent=4)
 
         # Reload configuration
@@ -176,7 +176,7 @@ class Board(object):
     def updateStatus(self, status):
         self.iotronic_config['iotronic']['board']["status"] = status
 
-        with open(SETTINGS, 'w') as f:
+        with open(self._settings, 'w') as f:
             json.dump(self.iotronic_config, f, indent=4)
 
     def getTimestamp(self):
@@ -187,5 +187,5 @@ class Board(object):
         self.iotronic_config['iotronic']['board']["updated_at"] = \
             self.updated_at
 
-        with open(SETTINGS, 'w') as f:
+        with open(self._settings, 'w') as f:
             json.dump(self.iotronic_config, f, indent=4)
