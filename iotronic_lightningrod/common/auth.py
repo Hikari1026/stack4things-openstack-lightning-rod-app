@@ -17,9 +17,18 @@
 # implement it in an app
 
 import json
+import hashlib
 
 def user_authentication(creds_file, username, password, encoding='utf-8'):
-    # USE HASH ASAP FFS
     with open(creds_file, 'r') as f:
-        creds = json.load(f)
-    return username == creds['username'] and password == creds['password']
+        auth = json.load(f)
+    
+    salt = bytes.fromhex(auth["salt"])
+    pwd_hash = bytes.fromhex(auth["password_hash"])
+
+    data_to_hash = password.encode('utf-8') + salt
+    computed_hash = hashlib.sha256(data_to_hash).digest()
+
+    auth_user = auth["username"]
+
+    return computed_hash == pwd_hash and username == auth_user
