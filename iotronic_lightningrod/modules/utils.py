@@ -16,7 +16,8 @@
 __author__ = "Nicola Peditto <n.peditto@gmail.com>"
 
 import asyncio
-import pkg_resources
+# import pkg_resources
+import importlib.metadata
 from six import moves
 from stevedore import extension
 from threading import Timer
@@ -102,7 +103,10 @@ class Utility(Module.Module):
 
         # Reading updated entry_points
         named_objects = {}
-        for ep in pkg_resources.iter_entry_points(group='s4t.modules'):
+        # for ep in pkg_resources.iter_entry_points(group='s4t.modules'):
+        #     named_objects.update({ep.name: ep.load()})
+
+        for ep in importlib.metadata.entry_points()["s4t.modules"]:
             named_objects.update({ep.name: ep.load()})
 
         await named_objects
@@ -149,13 +153,17 @@ def refresh_stevedore(namespace=None):
     # NOTE(sheeprine): pkg_resources doesn't support reload on python3 due to
     # defining basestring which is still there on reload hence executing
     # python2 related code.
-    try:
-        del sys.modules['pkg_resources'].basestring
-    except AttributeError:
-        # python2, do nothing
-        pass
+
+    # UPDATE: switching to importlib.metadata
+    # try:
+    #     del sys.modules['pkg_resources'].basestring
+    # except AttributeError:
+    #     # python2, do nothing
+    #     pass
     # Force working_set reload
-    moves.reload_module(sys.modules['pkg_resources'])
+    # moves.reload_module(sys.modules['pkg_resources'])
+
+    importlib.reload(importlib.metadata)
     # Clear stevedore cache
     cache = extension.ExtensionManager.ENTRY_POINT_CACHE
     if namespace:

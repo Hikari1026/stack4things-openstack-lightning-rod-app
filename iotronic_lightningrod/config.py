@@ -16,11 +16,16 @@
 __author__ = "Nicola Peditto <n.peditto@gmail.com>"
 
 import os
-import pkg_resources
+# import pkg_resources
+import importlib.metadata
 
-dist = pkg_resources.get_distribution(__package__)
-entry_points_name = \
-    os.path.join(dist.location, dist.egg_name()) + ".egg-info/entry_points.txt"
+# dist = pkg_resources.get_distribution(__package__)
+dist = importlib.metadata.distribution(__package__)
+
+# entry_points_name = \
+#     os.path.join(dist.location, dist.egg_name()) + ".egg-info/entry_points.txt"
+entry_points_name = os.path.join(dist._path, 'entry_points.txt')
 
 # Iotronic python package folder
-package_path = os.path.join(dist.location, __package__)
+# package_path = os.path.join(dist.location, __package__)
+package_path = os.path.join(dist.locate_file(''), __package__)

@@ -20,7 +20,8 @@ LOG = logging.getLogger(__name__)
 
 import inspect
 import os
-import pkg_resources
+# import pkg_resources
+import importlib.metadata
 import site
 
 
@@ -46,8 +47,12 @@ def checkIotronicConf(lr_CONF):
 
 def get_version(package):
     package = package.lower()
-    return next((p.version for p in pkg_resources.working_set if
-                 p.project_name.lower() == package), "No version")
+    # return next((p.version for p in pkg_resources.working_set if
+    #              p.project_name.lower() == package), "No version")
+    try:
+        return importlib.metadata.version(package)
+    except importlib.metadata.PackageNotFoundError:
+        return "No version"
 
 
 def backupConf():
