@@ -39,9 +39,10 @@ from flask import abort
 # from flask import Response
 
 import os
-import subprocess
+# import subprocess
 import threading
 import json
+import zipfile
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -87,7 +88,7 @@ class RestManager(Module.Module):
         app.secret_key = os.urandom(24).hex()  # to use flask session
 
         UPLOAD_FOLDER = os.path.join(self._data_folder, 'tmp')
-        ALLOWED_EXTENSIONS = set(['tar.gz', 'gz'])
+        ALLOWED_EXTENSIONS = set(['zip'])
         ALLOWED_STTINGS_EXTENSIONS = set(['json'])
         app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -158,16 +159,18 @@ class RestManager(Module.Module):
                     + " - " + sock_bundle[1]
 
             webservice_list = []
-            nginx_path = "/etc/nginx/conf.d/"
 
-            if os.path.exists(nginx_path):
-                active_webservice_list = [f for f in os.listdir(nginx_path)
-                                if os.path.isfile(os.path.join(nginx_path, f))]
+            # TODO nginx is not currently supported
+            # nginx_path = "/etc/nginx/conf.d/"
 
-                if len(active_webservice_list) != 0:
-                    for ws in active_webservice_list:
-                        ws = ws.replace('.conf', '')
-                        webservice_list.append(ws)
+            # if os.path.exists(nginx_path):
+            #     active_webservice_list = [f for f in os.listdir(nginx_path)
+            #                     if os.path.isfile(os.path.join(nginx_path, f))]
+
+            #     if len(active_webservice_list) != 0:
+            #         for ws in active_webservice_list:
+            #             ws = ws.replace('.conf', '')
+            #             webservice_list.append(ws)
 
             info = {
                 'board_id': board.uuid,
@@ -177,11 +180,11 @@ class RestManager(Module.Module):
                 'timestamp': str(
                     datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')),
                 'wstun_status': wstun_status,
-                'board_reg_status': str(board.status),
-                'iotronic_status': str(iotronic_status(board.status)),
+                'board_reg_status': str(CONF.board_status),
+                'iotronic_status': str(iotronic_status(CONF.board_status)),
                 'service_list': service_list,
                 'webservice_list': webservice_list,
-                'serial_dev': str('None'),#device_manager.getSerialDevice(),
+                'serial_dev': str('Not supported'),#device_manager.getSerialDevice(),
                 'nic': lr_cty,
                 'lr_version': str(
                     utils.get_version("iotronic-lightningrod")
@@ -197,7 +200,7 @@ class RestManager(Module.Module):
 
                 if ('username' in f_session):
 
-                    f_session['status'] = str(board.status)
+                    f_session['status'] = str(CONF.board_status)
 
                     wstun_status = 1 #service_manager.wstun_status()
                     if wstun_status == 0:
@@ -212,21 +215,22 @@ class RestManager(Module.Module):
                     webservice_list = ""
                     nginx_path = "/etc/nginx/conf.d/"
 
-                    if os.path.exists(nginx_path):
-                        active_webservice_list = [
-                            f for f in os.listdir(nginx_path)
-                                if os.path.isfile(os.path.join(nginx_path, f))
-                        ]
+                    # if os.path.exists(nginx_path):
+                    #     active_webservice_list = [
+                    #         f for f in os.listdir(nginx_path)
+                    #             if os.path.isfile(os.path.join(nginx_path, f))
+                    #     ]
 
-                        for ws in active_webservice_list:
-                            ws = ws.replace('.conf', '')[3:]
-                            webservice_list = webservice_list + "\
-                                <li>" + ws + "</li>"
-                    else:
-                        webservice_list = "no webservices exposed!"
+                    #     for ws in active_webservice_list:
+                    #         ws = ws.replace('.conf', '')[3:]
+                    #         webservice_list = webservice_list + "\
+                    #             <li>" + ws + "</li>"
+                    # else:
+                    #     webservice_list = "no webservices exposed!"
 
-                    if webservice_list == "":
-                        webservice_list = "no webservices exposed!"
+                    # if webservice_list == "":
+                    #     webservice_list = "no webservices exposed!"
+                    webservice_list = "no webservices exposed!"
 
                     lr_cty = "N/A"
                     from iotronic_lightningrod.lightningrod import wport
@@ -244,8 +248,8 @@ class RestManager(Module.Module):
                         'timestamp': str(
                             datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')),
                         'wstun_status': wstun_status,
-                        'board_reg_status': str(board.status),
-                        'iotronic_status': str(iotronic_status(board.status)),
+                        'board_reg_status': str(CONF.board_status),
+                        'iotronic_status': str(iotronic_status(CONF.board_status)),
                         'service_list': str(service_list),
                         'webservice_list': str(webservice_list),
                         'serial_dev': str('None'),#device_manager.getSerialDevice(),
@@ -271,7 +275,7 @@ class RestManager(Module.Module):
         def system():
             if 'username' in f_session:
                 info = {
-                    'board_status': board.status
+                    'board_status': CONF.board_status
                 }
                 return render_template('system.html', **info)
             else:
@@ -281,7 +285,7 @@ class RestManager(Module.Module):
         def network():
             if 'username' in f_session:
                 info = {
-                    'ifconfig': str('None'),#device_manager.getIfconfig()
+                    'ifconfig': str('Not supported'),#device_manager.getIfconfig()
                 }
                 return render_template('network.html', **info)
             else:
@@ -301,7 +305,7 @@ class RestManager(Module.Module):
                     }
                 }
             }
-            with open(os.path.join(ROOT_FOLDER, 'data', 'iotronic', 'settings.json'), 'w') as f:
+            with open(os.path.join(self._data_folder, 'iotronic', 'settings.json'), 'w') as f:
                 json.dump(data, f, indent=2)
 
         def change_hostname(hostname):
@@ -320,8 +324,8 @@ class RestManager(Module.Module):
 
         def lr_install():
             replace_list = ['plugins', 'services', 'settings']
-            templates_folder = os.path.join(ROOT_FOLDER, 'data', 'templates')
-            iotronic_folder = os.path.join(ROOT_FOLDER, 'data', 'iotronic')
+            templates_folder = os.path.join(self._data_folder, 'templates')
+            iotronic_folder = os.path.join(self._data_folder, 'iotronic')
 
             for filename in replace_list:
                 with open(os.path.join(templates_folder, f'{filename}.example.json'), 'r') as s:
@@ -330,22 +334,55 @@ class RestManager(Module.Module):
             return
 
         def identity_backup():
-            bashCommand = "device_bkp_rest backup --path /tmp "\
-                          + "| grep filename: |awk '{print $4}'"
-            process = subprocess.Popen(bashCommand,
-                                       stdout=subprocess.PIPE, shell=True)
-            output, error = process.communicate()
+            def create_zip(source_folder, output_zip):
+                with zipfile.ZipFile(output_zip, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                    for root, _, files in os.walk(source_folder):
+                        for file in files:
+                            file_path = os.path.join(root, file)
+                            zip_path = os.path.relpath(file_path, source_folder)
+                            zipf.write(file_path, zip_path)
 
-            return output.decode('ascii').strip()
+            source_fld = os.path.join(self._data_folder, 'iotronic')
+            output_zip = os.path.join(self._data_folder, 'tmp', 'backup.zip')
+            create_zip(source_fld, output_zip)
+            return output_zip
 
         def identity_restore(filepath):
-            bashCommand = "device_bkp_rest restore " \
-                          + str(filepath) + "| tail -n 1"
-            process = subprocess.Popen(bashCommand,
-                                       stdout=subprocess.PIPE, shell=True)
-            output, error = process.communicate()
 
-            return output.decode('ascii').strip()
+            def extract_zip(zip_file_path, extract_path):
+                try:
+                    with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+                        zip_ref.extractall(extract_path)
+                        return extract_path
+                except zipfile.BadZipFile:
+                    print('Error: Invalid ZIP file')
+                    return None
+                except FileNotFoundError:
+                    print('Error: File not found')
+                    return None
+
+            folder_name = datetime.now().strftime('backup_%Y_%m_%d_%H_%M_%S')
+            ex_path = extract_zip(filepath, os.path.join(self._data_folder, 'tmp', folder_name))
+
+            if ex_path == None:
+                print("Error restoring backup")
+                return "FAIL"
+            
+            replace_list = ['plugins', 'services', 'settings']
+
+            for filename in replace_list:
+                try:
+                    with open(os.path.join(ex_path, f'{filename}.json'), 'r') as s:
+                        with open(os.path.join(self._data_folder, 'iotronic', f'{filename}.json'), 'w') as d:
+                            json.dump(json.load(s), d, indent=2)
+                except FileNotFoundError:
+                    print(f"Error restoring {filename}.json")
+                except json.JSONDecodeError:
+                    print(f"Error restoring {filename}.json")
+
+            lr_utils.copy_folder(os.path.join(ex_path, 'plugins'), os.path.join(self._data_folder, 'iotronic', 'plugins'))
+
+            return("OK")
 
         def allowed_file(filename):
             return '.' in filename and \
@@ -359,9 +396,9 @@ class RestManager(Module.Module):
         @app.route('/restore', methods=['GET', 'POST'])
         def upload_file():
 
-            if ('username' in f_session) or str(board.status) == "first_boot":
+            if ('username' in f_session) or str(CONF.board_status) == "first_boot":
 
-                f_session['status'] = str(board.status)
+                f_session['status'] = str(CONF.board_status)
 
                 if request.form.get('dev_rst_btn') == 'Device restore':
 
@@ -370,7 +407,7 @@ class RestManager(Module.Module):
                         error = 'Identity restore result: No file uploaded!'
                         print(" - " + error)
                         info = {
-                            'board_status': board.status
+                            'board_status': CONF.board_status
                         }
                         return render_template(
                             'config.html',
@@ -387,7 +424,7 @@ class RestManager(Module.Module):
                             error = 'Identity restore result: No filename!'
                             print(" - " + error)
                             info = {
-                                'board_status': board.status
+                                'board_status': CONF.board_status
                             }
                             return render_template('config.html', **info,
                                                    error=error)
@@ -423,7 +460,7 @@ class RestManager(Module.Module):
                                         + 'file extention not allowed!'
                                 print(" - " + error)
                                 info = {
-                                    'board_status': board.status
+                                    'board_status': CONF.board_status
                                 }
                                 return render_template(
                                     'config.html',
@@ -467,7 +504,7 @@ class RestManager(Module.Module):
 
                 print("Lightning-rod factory reset: ")
 
-                f_session['status'] = str(board.status)
+                f_session['status'] = str(CONF.board_status)
 
                 # TODO: handle this
 
@@ -487,7 +524,13 @@ class RestManager(Module.Module):
                 # upd: lr_install now takes care of removal as well
 
                 # exec lr_install
-                # lr_install()
+
+                # delete all files in iotronic folder
+                iotronic_folder = os.path.join(self._data_folder, 'iotronic')
+                lr_utils.delete_directory(iotronic_folder)
+                os.makedirs(iotronic_folder)
+
+                lr_install()
                 print("--> Iotronic settings deleted.")
                 # restart LR
                 print("--> LR restarting in 5 seconds...")
@@ -502,9 +545,9 @@ class RestManager(Module.Module):
         @app.route('/config', methods=['GET', 'POST'])
         def config():
 
-            if ('username' in f_session) or str(board.status) == "first_boot":
+            if ('username' in f_session) or str(CONF.board_status) == "first_boot":
 
-                f_session['status'] = str(board.status)
+                f_session['status'] = str(CONF.board_status)
 
                 if request.method == 'POST':
 
@@ -579,7 +622,7 @@ class RestManager(Module.Module):
                                             + 'No filename!'
                                     print(" - " + error)
                                     info = {
-                                        'board_status': board.status
+                                        'board_status': CONF.board_status
                                     }
                                     return render_template(
                                         'config.html',
@@ -613,7 +656,7 @@ class RestManager(Module.Module):
 
                                         print(" - done!")
 
-                                        if board.status == "first_boot":
+                                        if CONF.board_status == "first_boot":
                                             # start LR
                                             print(" - LR starting "
                                                   + "in 5 seconds...")
@@ -633,7 +676,7 @@ class RestManager(Module.Module):
                                                 + str(filename)
                                         print(" - " + error)
                                         info = {
-                                            'board_status': board.status
+                                            'board_status': CONF.board_status
                                         }
                                         return render_template(
                                             'config.html',
@@ -645,7 +688,7 @@ class RestManager(Module.Module):
                                 error = 'input form error!'
                                 print(" - " + error)
                                 info = {
-                                    'board_status': board.status
+                                    'board_status': CONF.board_status
                                 }
                                 return render_template('config.html', **info,
                                                        error=error)
@@ -654,7 +697,7 @@ class RestManager(Module.Module):
                             error = "no settings file specified!"
                             print(" - " + error)
                             info = {
-                                'board_status': board.status
+                                'board_status': CONF.board_status
                             }
                             return render_template(
                                 'config.html',
@@ -670,14 +713,14 @@ class RestManager(Module.Module):
 
                 else:
 
-                    if board.status == "first_boot":
+                    if CONF.board_status == "first_boot":
 
                         urlwagent = request.args.get('urlwagent') or ""
                         code = request.args.get('code') or ""
                         info = {
                             'urlwagent': urlwagent,
                             'code': code,
-                            'board_status': board.status
+                            'board_status': CONF.board_status
                         }
 
                         return render_template('config.html', **info)
@@ -729,7 +772,7 @@ class RestManager(Module.Module):
                         else:
 
                             info = {
-                                'board_status': board.status
+                                'board_status': CONF.board_status
                             }
                             return render_template('config.html', **info)
 
@@ -737,7 +780,7 @@ class RestManager(Module.Module):
                 if request.method == 'POST':
                     req_body = request.get_json()
 
-                    if req_body != None and str(board.status) != "first_boot":
+                    if req_body != None and str(CONF.board_status) != "first_boot":
                         return {"result": "LR already configured!"}, 403
 
                 return redirect(url_for('login', next=request.endpoint))

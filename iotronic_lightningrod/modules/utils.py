@@ -18,7 +18,7 @@ __author__ = "Nicola Peditto <n.peditto@gmail.com>"
 import asyncio
 # import pkg_resources
 import importlib.metadata
-from six import moves
+# from six import moves
 from stevedore import extension
 from threading import Timer
 
@@ -330,3 +330,46 @@ def get_socket_info(wport):
         return sock_bundle
 
     return sock_bundle
+
+
+def delete_directory(path):
+    if os.path.exists(path):
+        if os.path.isfile(path):
+            os.remove(path)
+            print(f"File '{path}' deleted.")
+        elif os.path.isdir(path):
+            for item in os.listdir(path):
+                item_path = os.path.join(path, item)
+                if os.path.isfile(item_path):
+                    os.remove(item_path)
+                    print(f"File '{item_path}' deleted.")
+                elif os.path.isdir(item_path):
+                    delete_directory(item_path)
+            os.rmdir(path)
+            print(f"Directory '{path}' deleted.")
+    else:
+        print(f"Path '{path}' does not exist.")
+
+
+def copy_folder(source_folder, destination_folder):
+    try:
+        # Create the destination folder if it doesn't exist
+        if not os.path.exists(destination_folder):
+            os.makedirs(destination_folder)
+
+        # Iterate over the items in the source folder
+        for item in os.listdir(source_folder):
+            source_item = os.path.join(source_folder, item)
+            destination_item = os.path.join(destination_folder, item)
+
+            if os.path.isdir(source_item):
+                # Recursively copy subfolders
+                copy_folder(source_item, destination_item)
+            else:
+                # Copy files
+                with open(source_item, "rb") as src_file, open(destination_item, "wb") as dest_file:
+                    dest_file.write(src_file.read())
+
+        print(f"Folder '{source_folder}' copied to '{destination_folder}'")
+    except Exception as e:
+        print(f"An error occurred: {e}")

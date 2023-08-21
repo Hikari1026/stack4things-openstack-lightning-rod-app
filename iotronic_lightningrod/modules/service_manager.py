@@ -133,7 +133,7 @@ class ServiceManager(Module.Module):
             LOG.error(" --> Error loading services.json file: " +
                       "backup is not restorable!")
 
-            path_services_template = os.path.join(ROOT_FOLDER, 'data', 'templates', 'services.example.json')
+            path_services_template = os.path.join(self._data_folder, 'templates', 'services.example.json')
 
             if os.path.isfile(path_services_template):
 

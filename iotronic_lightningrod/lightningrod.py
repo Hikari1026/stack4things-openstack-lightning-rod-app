@@ -701,7 +701,8 @@ def wampConnect(wamp_conf):
                             LOG.error("Registration denied by Iotronic - " +
                                       "board already registered: "
                                       + str(w_msg.message))
-                            board.status = "already-registered"
+                            # board.status = "already-registered"
+                            board.status_update('already-registered')
                             # Bye()
 
                     except exception.ApplicationError as e:
@@ -967,7 +968,8 @@ def wampConnect(wamp_conf):
     except IndexError as err:
         LOG.error(" - Error parsing WAMP url: " + str(err))
         LOG.error(" --> port or address not specified")
-        board.status = "url_wamp_error"
+        # board.status = "url_wamp_error"
+        board.status_update("url_wamp_error")
 
     except Exception as err:
         LOG.error(" - WAMP connection error: " + str(err))

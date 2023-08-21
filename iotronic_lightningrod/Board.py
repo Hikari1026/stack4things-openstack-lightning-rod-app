@@ -28,6 +28,13 @@ CONF = cfg.CONF
 # global FIRST_BOOT
 FIRST_BOOT = False
 
+status_option = cfg.StrOpt(
+    'board_status',
+    default = 'None',
+    help='Board status option'
+)
+
+CONF.register_opt(status_option)
 
 class Board(object):
 
@@ -58,6 +65,12 @@ class Board(object):
         self._settings = os.path.join(self._data_folder, 'iotronic', 'settings.json')
 
         self.loadSettings()
+
+    def status_update(self, value):
+        # Rest server may not restart so the board status must be changed dynamically
+        # the board instance may be outdated so changing parameters must be updated using cfg
+        self.status = value
+        CONF.board_status = value
 
     def loadConf(self):
         """This method loads the JSON configuraton file: settings.json.
@@ -91,7 +104,8 @@ class Board(object):
             self.uuid = board_config['uuid']
             self.code = board_config['code']
             self.name = board_config['name']
-            self.status = board_config['status']
+            # self.status = board_config['status']
+            self.status_update(board_config['status'])
             self.type = board_config['type']
             self.mobile = board_config['mobile']
             self.extra = board_config['extra']
@@ -123,16 +137,19 @@ class Board(object):
                     if FIRST_BOOT == False:
                         FIRST_BOOT = True
                         LOG.info("FIRST BOOT procedure started")
-                        self.status = "first_boot"
+                        # self.status = "first_boot"
+                        self.status_update('first_boot')
                 else:
-                    self.status = None  # change to pre-registration status
+                    # self.status = None  # change to pre-registration 
+                    self.status_update(None)
                     LOG.info('First registration board settings: ')
                     LOG.info(' - code: ' + str(self.code))
                     self.getWampAgent(self.iotronic_config)
 
             except Exception as err:
                 LOG.error("Wrong code: " + str(err))
-                self.status = "first_boot"
+                # self.status = "first_boot"
+                self.status_update('first_boot')
                 # os._exit(1)
 
     def getWampAgent(self, config):
@@ -156,7 +173,8 @@ class Board(object):
                     "please check settings.json WAMP configuration... Bye!"
                 )
                 # os._exit(1)
-                self.status = "first_boot"
+                # self.status = "first_boot"
+                self.status_update('first_boot')
 
         # self.agent_url = str(self.wamp_config['url'])
         LOG.info(' - agent: ' + str(self.agent))
