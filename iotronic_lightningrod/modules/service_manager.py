@@ -63,6 +63,8 @@ wstun_ip = None
 global wstun_port
 wstun_port = None
 
+# WSTUN is not currently supported due to Android 10 policy on executing external binaries
+# until a proper solution is implemented this class is excluded from the package (look setup.cfg)
 
 class ServiceManager(Module.Module):
 
@@ -156,8 +158,7 @@ class ServiceManager(Module.Module):
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(4)
             global ws_server_alive
-            ws_server_alive = sock.connect_ex(
-                (self.wstun_ip, int(self.wstun_port)))
+            ws_server_alive = 1 #sock.connect_ex((self.wstun_ip, int(self.wstun_port)))
 
             if ws_server_alive == 0:
 

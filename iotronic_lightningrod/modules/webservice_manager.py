@@ -52,6 +52,9 @@ CONF.register_group(webservice_group)
 CONF.register_opts(proxy_opts, group=webservice_group)
 
 
+# Like service_manager this class is currently excluded from the package due to the inability
+# of executing binaries past Android 10
+
 class WebServiceManager(Module.Module):
 
     def __init__(self, board, session):
