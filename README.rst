@@ -2,6 +2,8 @@
 Iotronic Lightning-rod Agent
 ===============================
 
+This is a fork of the original Lightning-rod Agent. This work aims to deploy the agent on several platforms (mostly Android and perhaps web app) and for this reason all the Linux related components are replaced with more compatible and platform agnostic methods (if possible).
+
 Python implementation of Lightning-rod Agent, the Stack4Things
 board-side probe.
 
