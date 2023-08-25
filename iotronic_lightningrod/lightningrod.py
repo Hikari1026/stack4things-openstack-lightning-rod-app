@@ -227,6 +227,8 @@ class LightningRod(object):
 
             # LR was configured and we have to load its new configuration
             board.loadSettings()
+            if CONF.stop_feature or self.event.is_set():
+                return
 
         # Start timer checks on wamp connection
         def timeout():
