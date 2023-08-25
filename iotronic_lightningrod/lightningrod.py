@@ -381,6 +381,9 @@ async def wamp_singleCheck(session):
 
     except exception.ApplicationError as e:
         LOG.error(" - Iotronic Connection RPC error: " + str(e))
+    except AttributeError as e:
+        LOG.error(" - Iotronic Connection RPC error: " + str(e))
+        res = None
 
     return res
 

@@ -16,6 +16,7 @@
 __author__ = "Nicola Peditto <n.peditto@gmail.com>"
 
 # import signal
+import threading
 
 from oslo_log import log as logging
 LOG = logging.getLogger(__name__)
@@ -67,17 +68,18 @@ class timeout(object):
         self.error_message = error_message
         self.action = action
 
-    def handle_timeout(self, signum, frame):
+    def handle_timeout(self):
         raise TimeoutError(self.error_message, self.action)
 
     def __enter__(self):
         # signal.signal(signal.SIGALRM, self.handle_timeout)
         # signal.alarm(self.seconds)
-        pass
+        self.timeout_thread = threading.Timer(self.seconds, self.handle_timeout)
+        self.timeout_thread.start()
 
     def __exit__(self, type, value, traceback):
         # signal.alarm(0)
-        pass
+        self.timeout_thread.cancel()
         
         
 
@@ -88,17 +90,18 @@ class timeoutRPC(object):
         self.error_message = error_message
         self.action = action
 
-    def handle_timeout(self, signum, frame):
+    def handle_timeout(self):
         manageTimeout(self.error_message, self.action)
 
     def __enter__(self):
         # signal.signal(signal.SIGALRM, self.handle_timeout)
         # signal.alarm(self.seconds)
-        pass
+        self.timeout_thread = threading.Timer(self.seconds, self.handle_timeout)
+        self.timeout_thread.start()
 
     def __exit__(self, type, value, traceback):
         # signal.alarm(0)
-        pass
+        self.timeout_thread.cancel()
 
 
 class timeoutALIVE(object):
@@ -108,14 +111,15 @@ class timeoutALIVE(object):
         self.error_message = error_message
         self.action = action
 
-    def handle_timeout(self, signum, frame):
+    def handle_timeout(self):
         manageTimeout(self.error_message, self.action)
 
     def __enter__(self):
         # signal.signal(signal.SIGALRM, self.handle_timeout)
         # signal.alarm(self.seconds)
-        pass
+        self.timeout_thread = threading.Timer(self.seconds, self.handle_timeout)
+        self.timeout_thread.start()
 
     def __exit__(self, type, value, traceback):
         # signal.alarm(0)
-        pass
+        self.timeout_thread.cancel()
